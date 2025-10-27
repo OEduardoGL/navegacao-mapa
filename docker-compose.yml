@@ -1,0 +1,24 @@
+services:
+  tb3_nav:
+    build: .
+    image: tb3_classic_nav:latest
+    container_name: tb3_nav
+    shm_size: "2gb"
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+      - TURTLEBOT3_MODEL=waffle
+      - LIBGL_DRI3_DISABLE=0  
+      - MESA_NO_ERROR=1       
+      # - vblank_mode=0          # desativa vsync
+      - MESA_LOADER_DRIVER_OVERRIDE=iris
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ${HOME}/.Xauthority:/root/.Xauthority:ro
+      - ./ws/src/tb3_bug_nav_classic/worlds:/root/ws/src/tb3_bug_nav_classic/worlds:rw
+    devices:
+      - /dev/dri:/dev/dri
+    stdin_open: true
+    tty: true
+    ports:
+      - "11345:11345"
