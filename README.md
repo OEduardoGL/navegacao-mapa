@@ -1,4 +1,4 @@
-# Navegação por Mapa com TurtleBot3 (ROS 2 Humble + Gazebo Classic)
+# Navegação Baseado em Mapa com TurtleBot3 (ROS 2 Humble + Gazebo Classic)
 
 ## Visão geral
 
