@@ -3,15 +3,16 @@ services:
     build: .
     image: tb3_classic_nav:latest
     container_name: tb3_nav
+    runtime: nvidia
     shm_size: "2gb"
     environment:
       - DISPLAY=${DISPLAY}
       - QT_X11_NO_MITSHM=1
       - TURTLEBOT3_MODEL=waffle
-      - LIBGL_DRI3_DISABLE=0  
-      - MESA_NO_ERROR=1       
+      - MESA_NO_ERROR=1        
       # - vblank_mode=0          # desativa vsync
-      - MESA_LOADER_DRIVER_OVERRIDE=iris
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=graphics,compute,utility
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - ${HOME}/.Xauthority:/root/.Xauthority:ro

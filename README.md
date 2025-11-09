@@ -6,12 +6,12 @@
 1. Um mapa `map.pgm` criado no GIMP foi convertido para um mundo SDF compatível com o Gazebo Classic por meio do pacote `map2world`.
 2. O arquivo final `custom_map.world` inclui o mapa e posiciona o TurtleBot3 e o marcador de objetivo nas coordenadas desejadas.
 
-### D\* Lite
-- O nó `tb3_map_dstar/dstar_planner_node.py` carrega o mapa ocupacional (`custom_map.yaml`), infla os obstáculos (`safety_radius`) e procura um caminho livre entre start e goal.
-- O algoritmo **D\* Lite** mantém custos `g` e `rhs` por célula e expande a árvore a partir do objetivo até garantir consistência no estado inicial. Depois extrai o percurso completo.
+### Algoritmos
+- **D\* Lite** (`tb3_map_dstar/dstar_planner_node.py`): lê `custom_map.yaml`, infla obstáculos com o `safety_radius` e mantém as listas `g/rhs` para garantir consistência entre objetivo e origem antes de extrair o trajeto final.
+- **RRT** (`tb3_map_rrt/rrt_planner_node.py`): sampleia o espaço livre do mapa (após inflar o grid conforme `safety_radius`/`occupied_threshold`), constrói uma árvore Randômica Rápida de Busca e aplica atalhos + suavização (`simplify_distance`, `smoothing_iterations`, `goal_bias`, etc.) até conectar origem e objetivo.
 
 ### Seguimento de caminho
-- O nó `tb3_map_dstar/path_follower_node.py` assina `/planned_path`, calcula um deslocamento entre frames `map` e `odom` e aplica um controle proporcional sobre `cmd_vel` para seguir os waypoints com lookahead configurável.
+- Os seguidores `tb3_map_dstar/path_follower_node.py` e `tb3_map_rrt/path_follower_node.py` assinam `/planned_path`, calculam o deslocamento entre frames `map` e `odom` e aplicam um controle proporcional sobre `cmd_vel` para seguir os waypoints com lookahead configurável por launch.
 - O mesmo nó publica:
   - `robot_pose` (`geometry_msgs/PoseStamped`) – pose estimada no frame `map`.
   - `navigation_status` (`std_msgs/String`) – estados (`waiting_for_path`, `navigating`, `goal_reached`, etc.).
@@ -31,11 +31,11 @@ docker-compose up -d --build
 ```bash
 docker exec -it tb3_nav bash
 source /opt/ros/humble/setup.bash
-colcon build --packages-select tb3_map_dstar tb3_bug_nav_classic --symlink-install
+colcon build --packages-select tb3_map_dstar tb3_map_rrt tb3_bug_nav_classic --symlink-install
 source /root/ws/install/setup.bash
 ```
 
-### Executando a navegação D\* Lite
+### Executando D\* Lite
 ```bash
 ros2 launch tb3_bug_nav_classic tb3_dstar_nav.launch.py \
   gui:=true \
@@ -46,6 +46,21 @@ ros2 launch tb3_bug_nav_classic tb3_dstar_nav.launch.py \
   lookahead:=2
 ```
 
+### Executando RRT
+```bash
+ros2 launch tb3_bug_nav_classic tb3_rrt_nav.launch.py \
+  gui:=true \
+  start_x:=-2.76177 start_y:=-6.63469 \
+  goal_x:=-2.37407 goal_y:=13.9167 \
+  occupied_threshold:=200 \
+  safety_radius:=0.4 \
+  max_iterations:=9000 \
+  step_size:=0.8 \
+  goal_radius:=0.7 \
+  goal_bias:=0.12 \
+  smoothing_iterations:=120 \
+  lookahead:=0.5
+```
 ---
 
 ## Arquitetura de pastas
@@ -53,13 +68,18 @@ ros2 launch tb3_bug_nav_classic tb3_dstar_nav.launch.py \
 ```
 ├── src/
 │   ├── tb3_bug_nav_classic/
-│   │   ├── launch/tb3_dstar_nav.launch.py
+│   │   ├── launch/tb3_{dstar,rrt}_nav.launch.py
 │   │   ├── maps/custom_map.{yaml,pgm}
 │   │   └── worlds/custom_map.world
-│   └── tb3_map_dstar/
-│       ├── dstar_planner_node.py
-│       └── path_follower_node.py
-├──log/dstar_run/ # rosbag gravado
+│   ├── tb3_map_dstar/
+│   │   ├── dstar_planner_node.py
+│   │   └── path_follower_node.py
+│   ├── tb3_map_rrt/
+│   │   ├── rrt_planner_node.py
+│   │   └── path_follower_node.py
+│   └── log/
+│       ├── dstar_run/ # rosbag gravado
+│       └── rrt_run/   # rosbag gravado
 ├──Dockerfile
 ├──docker-compose.yml
 └──entrypoint.sh
